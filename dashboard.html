@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dark Web Intelligence Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%);
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+        
+        .dashboard-header {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            border-bottom: 2px solid #00ff88;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #00ff88, #00d4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #00ff88;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+        
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto auto;
+            gap: 2rem;
+        }
+        
+        .widget {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 1.5rem;
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .widget:hover {
+            transform: translateY(-5px);
+            border-color: rgba(0, 255, 136, 0.4);
+            box-shadow: 0 10px 30px rgba(0, 255, 136, 0.1);
+        }
+        
+        .widget::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00ff88, transparent);
+            animation: scan 3s infinite;
+        }
+        
+        @keyframes scan {
+            0% {
+                left: -100%;
+            }
+            100% {
+                left: 100%;
+            }
+        }
+        
+        .widget-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+            gap: 0.5rem;
+        }
+        
+        .widget-icon {
+            width: 24px;
+            height: 24px;
+            fill: #00ff88;
+        }
+        
+        .widget-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #ffffff;
+        }
+        
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            grid-column: 1 / -1;
+        }
+        
+        .stat-card {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1.5rem;
+            border-radius: 10px;
+            border-left: 4px solid #00ff88;
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            background: rgba(0, 255, 136, 0.1);
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #00ff88;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+        
+        .stat-label {
+            color: #cccccc;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 1rem;
+        }
+        
+        .risk-meter {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .risk-gauge {
+            width: 200px;
+            height: 200px;
+            position: relative;
+        }
+        
+        .alerts-list {
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        
+        .alert-item {
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid rgba(255, 0, 0, 0.3);
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 8px;
+            border-left: 4px solid #ff4444;
+        }
+        
+        .alert-high {
+            border-left-color: #ff4444;
+        }
+        
+        .alert-medium {
+            border-left-color: #ffaa00;
+        }
+        
+        .alert-low {
+            border-left-color: #00ff88;
+        }
+        
+        .alert-title {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .alert-description {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        .network-viz {
+            height: 300px;
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+        
+        .control-panel {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .control-button {
+            background: linear-gradient(45deg, #00ff88, #00d4ff);
+            color: #000;
+            border: none;
+            padding: 0.7rem 1.5rem;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .control-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+        }
+        
+        .control-button:active {
+            transform: scale(0.95);
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        
+        .data-table th,
+        .data-table td {
+            padding: 0.8rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(0, 255, 136, 0.2);
+        }
+        
+        .data-table th {
+            background: rgba(0, 255, 136, 0.1);
+            color: #00ff88;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .data-table tr:hover {
+            background: rgba(0, 255, 136, 0.05);
+        }
+        
+        .risk-high {
+            color: #ff4444;
+        }
+        
+        .risk-medium {
+            color: #ffaa00;
+        }
+        
+        .risk-low {
+            color: #00ff88;
+        }
+        
+        @media (max-width: 768px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+            }
+            .stat-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(0, 255, 136, 0.3);
+            border-top: 3px solid #00ff88;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header class="dashboard-header">
+        <div class="header-content">
+            <div class="logo">🕸️ Dark Web Intelligence</div>
+            <div class="status-indicator">
+                <div class="status-dot"></div>
+                <span>System Active</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <!-- Statistics Overview -->
+        <div class="widget stat-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="totalPages">0</div>
+                <div class="stat-label">Pages Crawled</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="highRiskPages">0</div>
+                <div class="stat-label">High Risk Pages</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="entitiesExtracted">0</div>
+                <div class="stat-label">Entities Extracted</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="activeAlerts">0</div>
+                <div class="stat-label">Active Alerts</div>
+            </div>
+        </div>
+
+        <!-- Risk Assessment -->
+        <div class="widget">
+            <div class="widget-header">
+                <svg class="widget-icon" viewBox="0 0 24 24">
+                    <path d="M12 1L3 5V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V5L12 1M12 7C13.11 7 14 7.9 14 9C14 10.11 13.11 11 12 11C10.9 11 10 10.11 10 9C10 7.9 10.9 7 12 7M18 9C18 10.71 17.54 12.26 16.78 13.63L13.63 16.78C12.26 17.54 10.71 18 9 18V16C10.21 16 11.39 15.71 12.46 15.18L15.18 12.46C15.71 11.39 16 10.21 16 9"/>
+                </svg>
+                <h2 class="widget-title">Risk Assessment</h2>
+            </div>
+            <div class="risk-meter">
+                <div class="risk-gauge">
+                    <canvas id="riskGauge" width="200" height="200"></canvas>
+                </div>
+                <div id="riskLevel" class="stat-number">LOW</div>
+            </div>
+        </div>
+
+        <!-- Activity Timeline -->
+        <div class="widget">
+            <div class="widget-header">
+                <svg class="widget-icon" viewBox="0 0 24 24">
+                    <path d="M15,13H16.5V15.82L18.94,17.23L18.19,18.53L15,16.69V13M19,8H5V19H9.67C9.24,18.09 9,17.07 9,16A7,7 0 0,1 16,9C17.07,9 18.09,9.24 19,9.67V8M5,21C3.89,21 3,20.1 3,19V5C3,3.89 3.89,3 5,3H6V1H8V3H16V1H18V3H19A2,2 0 0,1 21,5V11.1C22.24,12.36 23,14.09 23,16A7,7 0 0,1 16,23C14.09,23 12.36,22.24 11.1,21H5M16,11.15A4.85,4.85 0 0,0 11.15,16C11.15,18.68 13.32,20.85 16,20.85A4.85,4.85 0 0,0 20.85,16C20.85,13.32 18.68,11.15 16,11.15Z"/>
+                </svg>
+                <h2 class="widget-title">Activity Timeline</h2>
+            </div>
+            <div class="chart-container">
+                <canvas id="activityChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Content Classification -->
+        <div class="widget">
+            <div class="widget-header">
+                <svg class="widget-icon" viewBox="0 0 24 24">
+                    <path d="M9,3V4H4V6H5V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V6H20V4H15V3H9M7,6H17V19H7V6M9,8V17H11V8H9M13,8V17H15V8H13Z"/>
+                </svg>
+                <h2 class="widget-title">Content Classification</h2>
+            </div>
+            <div class="chart-container">
+                <canvas id="classificationChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Real-time Alerts -->
+        <div class="widget">
+            <div class="widget-header">
+                <svg class="widget-icon" viewBox="0 0 24 24">
+                    <path d="M13,14H11V10H13M13,18H11V16H13M1,21H23L12,2L1,21Z"/>
+                </svg>
+                <h2 class="widget-title">Real-time Alerts</h2>
+            </div>
+            <div class="control-panel">
+                <button class="control-button" onclick="refreshAlerts()">Refresh</button>
+                <button class="control-button" onclick="clearAlerts()">Clear All</button>
+            </div>
+            <div class="alerts-list" id="alertsList">
+                <!-- Alerts will be populated here -->
+            </div>
+        </div>
+
+        <!-- Network Visualization -->
+        <div class="widget">
+            <div class="widget-header">
+                <svg class="widget-icon" viewBox="0 0 24 24">
+                    <path d="M17,20.5C17,21.3 16.3,22 15.5,22C14.7,22 14,21.3 14,20.5C14,19.7 14.7,19 15.5,19C16.3,19 17,19.7 17,20.5M2.5,4C3.3,4 4,4.7 4,5.5C4,6.3 3.3,7 2.5,7C1.7,7 1,6.3 1,5.5C1,4.7 1.7,4 2.5,4M9,12C9.8,12 10.5,12.7 10.5,13.5C10.5,14.3 9.8,15 9,15C8.2,15 7.5,14.3 7.5,13.5C7.5,12.7 8.2,12 9,12M6.5,10C7.3,10 8,10.7 8,11.5C8,12.3 7.3,13 6.5,13C5.7,13 5,12.3 5,11.5C5,10.7 5.7,10 6.5,10M12,6C12.8,6 13.5,6.7 13.5,7.5C13.5,8.3 12.8,9 12,9C11.2,9 10.5,8.3 10.5,7.5C10.5,6.7 11.2,6 12,6M21,9C21.8,9 22.5,9.7 22.5,10.5C22.5,11.3 21.8,12 21,12C20.2,12 19.5,11.3 19.5,10.5C19.5,9.7 20.2,9 21,9M19,6C19.8,6 20.5,6.7 20.5,7.5C20.5,8.3 19.8,9 19,9C18.2,9 17.5,8.3 17.5,7.5C17.5,6.7 18.2,6 19,6"/>
+                </svg>
+                <h2 class="widget-title">Network Visualization</h2>
+            </div>
+            <div class="network-viz" id="networkViz"></div>
+        </div>
+
+        <!-- inside the loop that renders each seed URL -->
+        <div class="site-entry">
+            <h3>
+                {{ url }} {% if data.is_onion %}
+                <span class="badge badge-warning">.onion</span> {% endif %} {% if data.risk_level == 'High' %}
+                <span class="badge badge-danger">HIGH</span> {% elif data.risk_level == 'Medium' %}
+                <span class="badge badge-warning">MED</span> {% else %}
+                <span class="badge badge-success">LOW</span> {% endif %}
+            </h3>
+            {% if data.title %}
+            <div class="muted">Title: {{ data.title }}</div>
+            {% endif %}
+            <div>Last analyzed: {{ data.last_analyzed }}</div>
+            <ul>
+                {% for l in data.links %}
+                <li><a href="{{ l }}" target="_blank" rel="noreferrer">{{ l }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <!-- Threat Intelligence Table -->
+        <div class="widget" style="grid-column: 1 / -1;">
+            <div class="widget-header">
+                <svg class="widget-icon" viewBox="0 0 24 24">
+                    <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                </svg>
+                <h2 class="widget-title">Threat Intelligence Summary</h2>
+            </div>
+            <div class="control-panel">
+                <button class="control-button" onclick="exportReport()">📊 Export Report</button>
+                <button class="control-button" onclick="refreshData()">🔄 Refresh Data</button>
+                <button class="control-button" onclick="runAnalysis()">🔍 Run Analysis</button>
+            </div>
+            <table class="data-table" id="threatTable">
+                <thead>
+                    <tr>
+                        <th>URL</th>
+                        <th>Risk Level</th>
+                        <th>Classification</th>
+                        <th>Entities Found</th>
+                        <th>Last Analyzed</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="threatTableBody">
+                    <!-- Data will be populated here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const baseUrl = 'http://localhost:5000/api';
+        // Dashboard Data Management
+        class DashboardData {
+            constructor() {
+                this.stats = {
+                    totalPages: 0,
+                    highRiskPages: 0,
+                    entitiesExtracted: 0,
+                    activeAlerts: 0,
+                    averageRiskScore: 0.2
+                };
+                this.alerts = [];
+                this.threatData = [];
+                this.activityData = [];
+                this.classificationData = {};
+            }
+
+            // Simulate data loading from backend
+            async loadData() {
+                // Simulate API call delay
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                // Generate sample data
+                this.stats = {
+                    totalPages: Math.floor(Math.random() * 500) + 100,
+                    highRiskPages: Math.floor(Math.random() * 50) + 10,
+                    entitiesExtracted: Math.floor(Math.random() * 2000) + 500,
+                    activeAlerts: Math.floor(Math.random() * 15) + 3,
+                    averageRiskScore: Math.random() * 0.8 + 0.1
+                };
+
+                this.generateSampleAlerts();
+                this.generateThreatData();
+                this.generateActivityData();
+                this.generateClassificationData();
+            }
+
+            generateSampleAlerts() {
+                const alertTypes = [{
+                    title: "Suspicious Bitcoin Address",
+                    level: "high",
+                    description: "Multiple references to suspicious cryptocurrency transactions detected."
+                }, {
+                    title: "Weapons Discussion",
+                    level: "high",
+                    description: "Forum post contains discussion about firearms and weapons."
+                }, {
+                    title: "Drug-related Keywords",
+                    level: "medium",
+                    description: "Pharmaceutical terms detected in marketplace listing."
+                }, {
+                    title: "Hacking Tools Mentioned",
+                    level: "medium",
+                    description: "References to malware and exploitation tools found."
+                }, {
+                    title: "Privacy Tool Discussion",
+                    level: "low",
+                    description: "Educational content about anonymity tools."
+                }, {
+                    title: "Academic Research",
+                    level: "low",
+                    description: "Legitimate research discussion identified."
+                }];
+
+                this.alerts = [];
+                const numAlerts = Math.floor(Math.random() * 8) + 3;
+
+                for (let i = 0; i < numAlerts; i++) {
+                    const alert = alertTypes[Math.floor(Math.random() * alertTypes.length)];
+                    this.alerts.push({
+                        ...alert,
+                        id: i + 1,
+                        timestamp: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000).toLocaleString()
+                    });
+                }
+            }
+
+            generateThreatData() {
+                const sampleUrls = [
+                    "research-forum-1.local",
+                    "marketplace-sim.local",
+                    "privacy-tools.local",
+                    "academic-study.local",
+                    "security-research.local"
+                ];
+
+                this.threatData = sampleUrls.map((url, index) => ({
+                    url: url,
+                    riskLevel: Math.random() > 0.7 ? 'High' : Math.random() > 0.4 ? 'Medium' : 'Low',
+                    classification: ['Research', 'Marketplace', 'Privacy', 'Academic', 'Security'][index],
+                    entities: Math.floor(Math.random() * 20) + 5,
+                    lastAnalyzed: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toLocaleDateString()
+                }));
+            }
+
+            generateActivityData() {
+                this.activityData = [];
+                const now = new Date();
+
+                for (let i = 6; i >= 0; i--) {
+                    const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+                    this.activityData.push({
+                        date: date.toLocaleDateString(),
+                        crawled: Math.floor(Math.random() * 50) + 10,
+                        analyzed: Math.floor(Math.random() * 40) + 8,
+                        alerts: Math.floor(Math.random() * 10) + 1
+                    });
+                }
+            }
+
+            generateClassificationData() {
+                this.classificationData = {
+                    'Research': Math.floor(Math.random() * 30) + 20,
+                    'Privacy Tools': Math.floor(Math.random() * 25) + 15,
+                    'Marketplace': Math.floor(Math.random() * 20) + 10,
+                    'Academic': Math.floor(Math.random() * 15) + 5,
+                    'High Risk': Math.floor(Math.random() * 10) + 2,
+                    'Suspicious': Math.floor(Math.random() * 8) + 1
+                };
+            }
+        }
+
+        // Chart Management
+        class ChartManager {
+            constructor() {
+                this.charts = {};
+            }
+
+            createActivityChart(data) {
+                const ctx = document.getElementById('activityChart').getContext('2d');
+
+                if (this.charts.activity) {
+                    this.charts.activity.destroy();
+                }
+
+                this.charts.activity = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.map(d => d.date),
+                        datasets: [{
+                            label: 'Pages Crawled',
+                            data: data.map(d => d.crawled),
+                            borderColor: '#00ff88',
+                            backgroundColor: 'rgba(0, 255, 136, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }, {
+                            label: 'Pages Analyzed',
+                            data: data.map(d => d.analyzed),
+                            borderColor: '#00d4ff',
+                            backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }, {
+                            label: 'Alerts Generated',
+                            data: data.map(d => d.alerts),
+                            borderColor: '#ff4444',
+                            backgroundColor: 'rgba(255, 68, 68, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    color: '#ffffff'
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                ticks: {
+                                    color: '#ffffff'
+                                },
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.1)'
+                                }
+                            },
+                            y: {
+                                ticks: {
+                                    color: '#ffffff'
+                                },
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.1)'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            createClassificationChart(data) {
+                const ctx = document.getElementById('classificationChart').getContext('2d');
+
+                if (this.charts.classification) {
+                    this.charts.classification.destroy();
+                }
+
+                const colors = ['#00ff88', '#00d4ff', '#ffaa00', '#ff4444', '#9966ff', '#ff6699'];
+
+                this.charts.classification = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(data),
+                        datasets: [{
+                            data: Object.values(data),
+                            backgroundColor: colors,
+                            borderColor: colors.map(color => color + '80'),
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    color: '#ffffff',
+                                    padding: 20
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            createRiskGauge(riskScore) {
+                const canvas = document.getElementById('riskGauge');
+                const ctx = canvas.getContext('2d');
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                const radius = 80;
+
+                // Clear canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Draw background arc
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, Math.PI, 2 * Math.PI);
+                ctx.lineWidth = 20;
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                ctx.stroke();
+
+                // Draw risk arc
+                const riskAngle = Math.PI + (riskScore * Math.PI);
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, Math.PI, riskAngle);
+                ctx.lineWidth = 20;
+
+                // Color based on risk level
+                if (riskScore < 0.3) {
+                    ctx.strokeStyle = '#00ff88';
+                    document.getElementById('riskLevel').textContent = 'LOW';
+                } else if (riskScore < 0.7) {
+                    ctx.strokeStyle = '#ffaa00';
+                    document.getElementById('riskLevel').textContent = 'MEDIUM';
+                } else {
+                    ctx.strokeStyle = '#ff4444';
+                    document.getElementById('riskLevel').textContent = 'HIGH';
+                }
+
+                ctx.stroke();
+
+                // Draw needle
+                const needleAngle = Math.PI + (riskScore * Math.PI);
+                const needleLength = radius - 10;
+
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(
+                    centerX + Math.cos(needleAngle) * needleLength,
+                    centerY + Math.sin(needleAngle) * needleLength
+                );
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#ffffff';
+                ctx.stroke();
+
+                // Draw center circle
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, 5, 0, 2 * Math.PI);
+                ctx.fillStyle = '#ffffff';
+                ctx.fill();
+            }
+        }
+
+        // UI Management
+        class UIManager {
+            constructor() {
+                this.isLoading = false;
+            }
+
+            updateStats(stats) {
+                document.getElementById('totalPages').textContent = stats.totalPages.toLocaleString();
+                document.getElementById('highRiskPages').textContent = stats.highRiskPages.toLocaleString();
+                document.getElementById('entitiesExtracted').textContent = stats.entitiesExtracted.toLocaleString();
+                document.getElementById('activeAlerts').textContent = stats.activeAlerts.toLocaleString();
+            }
+
+            updateAlerts(alerts) {
+                const alertsList = document.getElementById('alertsList');
+                alertsList.innerHTML = '';
+
+                if (alerts.length === 0) {
+                    alertsList.innerHTML = '<div style="text-align: center; color: #888; padding: 2rem;">No active alerts</div>';
+                    return;
+                }
+
+                alerts.forEach(alert => {
+                    const alertElement = document.createElement('div');
+                    alertElement.className = `alert-item alert-${alert.level}`;
+                    alertElement.innerHTML = `
+                        <div class="alert-title">${alert.title}</div>
+                        <div class="alert-description">${alert.description}</div>
+                        <div style="font-size: 0.8rem; color: #888; margin-top: 0.5rem;">${alert.timestamp}</div>
+                    `;
+                    alertsList.appendChild(alertElement);
+                });
+            }
+
+            updateThreatTable(threatData) {
+                const tbody = document.getElementById('threatTableBody');
+                tbody.innerHTML = '';
+                if (threatData.length === 0) {
+                    tbody.innerHTML = `<tr>
+                        <td colspan="6" style="text-align:center; color:#888;">No data available</td>
+                    </tr>`;
+                    return;
+                }
+
+                threatData.forEach(threat => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${threat.url}</td>
+                        <td><span class="risk-${threat.riskLevel.toLowerCase()}">${threat.riskLevel}</span></td>
+                        <td>${threat.classification}</td>
+                        <td>${threat.entities}</td>
+                        <td>${threat.lastAnalyzed}</td>
+                        <td>
+                            <button class="control-button" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;" 
+                                onclick="viewDetails('${threat.url}')">View</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+
+            showLoading() {
+                this.isLoading = true;
+                // Add loading indicators to widgets
+                document.querySelectorAll('.widget').forEach(widget => {
+                    if (!widget.querySelector('.loading')) {
+                        const loading = document.createElement('div');
+                        loading.className = 'loading';
+                        loading.innerHTML = '<div class="spinner"></div>';
+                        widget.appendChild(loading);
+                    }
+                });
+            }
+
+            hideLoading() {
+                this.isLoading = false;
+                document.querySelectorAll('.loading').forEach(loading => {
+                    loading.remove();
+                });
+            }
+
+            createNetworkVisualization() {
+                const container = document.getElementById('networkViz');
+                const width = container.offsetWidth;
+                const height = 300;
+
+                // Clear existing content
+                container.innerHTML = '';
+
+                const svg = d3.select(container)
+                    .append('svg')
+                    .attr('width', width)
+                    .attr('height', height);
+
+                // Sample network data
+                const nodes = [{
+                    id: 'center',
+                    group: 1,
+                    size: 20,
+                    label: 'Research Hub'
+                }, {
+                    id: 'forum1',
+                    group: 2,
+                    size: 15,
+                    label: 'Forum A'
+                }, {
+                    id: 'forum2',
+                    group: 2,
+                    size: 15,
+                    label: 'Forum B'
+                }, {
+                    id: 'market1',
+                    group: 3,
+                    size: 12,
+                    label: 'Market 1'
+                }, {
+                    id: 'user1',
+                    group: 4,
+                    size: 8,
+                    label: 'User A'
+                }, {
+                    id: 'user2',
+                    group: 4,
+                    size: 8,
+                    label: 'User B'
+                }, {
+                    id: 'user3',
+                    group: 4,
+                    size: 8,
+                    label: 'User C'
+                }];
+
+                const links = [{
+                    source: 'center',
+                    target: 'forum1'
+                }, {
+                    source: 'center',
+                    target: 'forum2'
+                }, {
+                    source: 'center',
+                    target: 'market1'
+                }, {
+                    source: 'forum1',
+                    target: 'user1'
+                }, {
+                    source: 'forum1',
+                    target: 'user2'
+                }, {
+                    source: 'forum2',
+                    target: 'user2'
+                }, {
+                    source: 'forum2',
+                    target: 'user3'
+                }, {
+                    source: 'market1',
+                    target: 'user1'
+                }];
+
+                const color = d3.scaleOrdinal()
+                    .domain([1, 2, 3, 4])
+                    .range(['#00ff88', '#00d4ff', '#ffaa00', '#ff6699']);
+
+                const simulation = d3.forceSimulation(nodes)
+                    .force('link', d3.forceLink(links).id(d => d.id).distance(80))
+                    .force('charge', d3.forceManyBody().strength(-300))
+                    .force('center', d3.forceCenter(width / 2, height / 2));
+
+                const link = svg.append('g')
+                    .selectAll('line')
+                    .data(links)
+                    .enter().append('line')
+                    .attr('stroke', '#666')
+                    .attr('stroke-opacity', 0.6)
+                    .attr('stroke-width', 2);
+
+                const node = svg.append('g')
+                    .selectAll('circle')
+                    .data(nodes)
+                    .enter().append('circle')
+                    .attr('r', d => d.size)
+                    .attr('fill', d => color(d.group))
+                    .attr('stroke', '#fff')
+                    .attr('stroke-width', 2);
+
+                const labels = svg.append('g')
+                    .selectAll('text')
+                    .data(nodes)
+                    .enter().append('text')
+                    .text(d => d.label)
+                    .attr('font-size', 10)
+                    .attr('fill', '#fff')
+                    .attr('text-anchor', 'middle')
+                    .attr('dy', 4);
+
+                simulation.on('tick', () => {
+                    link
+                        .attr('x1', d => d.source.x)
+                        .attr('y1', d => d.source.y)
+                        .attr('x2', d => d.target.x)
+                        .attr('y2', d => d.target.y);
+
+                    node
+                        .attr('cx', d => d.x)
+                        .attr('cy', d => d.y);
+
+                    labels
+                        .attr('x', d => d.x)
+                        .attr('y', d => d.y);
+                });
+            }
+        }
+
+        // Main Dashboard Controller
+        class Dashboard {
+            constructor() {
+                this.data = new DashboardData();
+                this.charts = new ChartManager();
+                this.ui = new UIManager();
+
+                this.init();
+            }
+
+            async init() {
+                this.ui.showLoading();
+
+                try {
+                    await this.data.loadData();
+                    this.updateDashboard();
+                } catch (error) {
+                    console.error('Error initializing dashboard:', error);
+                } finally {
+                    this.ui.hideLoading();
+                }
+
+                // Auto-refresh every 30 seconds
+                setInterval(() => {
+                    this.refreshData();
+                }, 30000);
+            }
+
+            updateDashboard() {
+                this.ui.updateStats(this.data.stats);
+                this.ui.updateAlerts(this.data.alerts);
+                this.ui.updateThreatTable(this.data.threatData);
+
+                this.charts.createActivityChart(this.data.activityData);
+                this.charts.createClassificationChart(this.data.classificationData);
+                this.charts.createRiskGauge(this.data.stats.averageRiskScore);
+
+                this.ui.createNetworkVisualization();
+            }
+
+            async refreshData() {
+                if (this.ui.isLoading) return;
+
+                this.ui.showLoading();
+
+                try {
+                    await this.data.loadData();
+                    this.updateDashboard();
+                } catch (error) {
+                    console.error('Error refreshing data:', error);
+                } finally {
+                    this.ui.hideLoading();
+                }
+            }
+        }
+
+        // Global Functions
+        function refreshAlerts() {
+            dashboard.data.generateSampleAlerts();
+            dashboard.ui.updateAlerts(dashboard.data.alerts);
+        }
+
+        function clearAlerts() {
+            dashboard.data.alerts = [];
+            dashboard.ui.updateAlerts(dashboard.data.alerts);
+            document.getElementById('activeAlerts').textContent = '0';
+        }
+
+        function refreshData() {
+            dashboard.refreshData();
+        }
+
+        function runAnalysis() {
+            alert('Analysis initiated. This would normally trigger the NLP analysis pipeline.');
+        }
+
+        function exportReport() {
+            const reportData = {
+                timestamp: new Date().toISOString(),
+                stats: dashboard.data.stats,
+                alerts: dashboard.data.alerts,
+                threats: dashboard.data.threatData
+            };
+
+            const blob = new Blob([JSON.stringify(reportData, null, 2)], {
+                type: 'application/json'
+            });
+
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `intelligence_report_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function viewDetails(url) {
+            alert(`Viewing details for: ${url}\n\nThis would normally show detailed analysis results, extracted entities, and risk assessment details.`);
+        }
+
+        // Initialize Dashboard
+        let dashboard;
+        document.addEventListener('DOMContentLoaded', () => {
+            dashboard = new Dashboard();
+        });
+    </script>
+</body>
+
+</html>

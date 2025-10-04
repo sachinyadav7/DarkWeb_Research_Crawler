@@ -1,0 +1,25 @@
+# Core dependencies
+flask
+flask-cors
+requests
+aiohttp
+numpy
+pandas
+nltk
+scikit-learn
+
+# Advanced NLP (Optional but recommended)
+transformers
+torch
+sentence-transformers
+spacy
+
+# Additional analysis tools
+matplotlib
+seaborn
+beautifulsoup4
+python-dateutil
+
+# For Tor integration (Advanced users only)
+stem
+pysocks

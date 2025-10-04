@@ -1,0 +1,17 @@
+{
+    "models": {
+        "sentiment": "distilbert-base-uncased-finetuned-sst-2-english",
+        "classification": "bert-base-uncased",
+        "embeddings": "all-MiniLM-L6-v2"
+    },
+    "risk_thresholds": {
+        "low": 0.3,
+        "medium": 0.6,
+        "high": 0.8
+    },
+    "topic_modeling": {
+        "n_topics": 10,
+        "min_df": 2,
+        "max_features": 1000
+    }
+}

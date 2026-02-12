@@ -40,3 +40,10 @@ jobs:
         run: |
           # if you add tests later
           echo "No tests yet!"
+
+       # 6) Security scan with Bandit
+      - name: Security scan (Bandit)
+        run: |
+          pip install bandit
+          bandit -r . -ll
+

@@ -46,4 +46,9 @@ jobs:
         run: |
           pip install bandit
           bandit -r . -ll || true
+      
+       # 7) Build Docker image
+      - name: Build Docker image
+        run: docker build -t darkweb-crawler .
+
 
